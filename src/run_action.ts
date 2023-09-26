@@ -2,7 +2,6 @@ import exponentialBackoffWithJitter from './exponential_backoff_with_jitter';
 import objectToQueryParamString from './object_to_query_param_string';
 import packageVersion from './package_version';
 import fetch from './fetch';
-import AbortController from './abort-controller';
 import Base from './base';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -44,12 +43,10 @@ function runAction(
         headers['User-Agent'] = userAgent;
     }
 
-    const controller = new AbortController();
     const normalizedMethod = method.toUpperCase();
     const options: RequestInit = {
         method: normalizedMethod,
         headers,
-        signal: controller.signal,
     };
 
     if (bodyData !== null) {
@@ -60,13 +57,8 @@ function runAction(
         }
     }
 
-    const timeout = setTimeout(() => {
-        controller.abort();
-    }, base._airtable._requestTimeout);
-
     fetch(url, options)
         .then(resp => {
-            clearTimeout(timeout);
             if (resp.status === 429 && !base._airtable._noRetryIfRateLimited) {
                 const backoffDelayMs = exponentialBackoffWithJitter(numAttempts);
                 setTimeout(() => {
@@ -92,7 +84,6 @@ function runAction(
             }
         })
         .catch(error => {
-            clearTimeout(timeout);
             callback(error);
         });
 }

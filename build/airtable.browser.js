@@ -1,24 +1,5 @@
 require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
-// istanbul ignore file
-var AbortController;
-var browserGlobal = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : null; // self is the global in web workers
-if (!browserGlobal) {
-    AbortController = require('abort-controller');
-}
-else if ('signal' in new Request('https://airtable.com')) {
-    AbortController = browserGlobal.AbortController;
-}
-else {
-    /* eslint-disable @typescript-eslint/no-var-requires */
-    var polyfill = require('abortcontroller-polyfill/dist/cjs-ponyfill');
-    /* eslint-enable @typescript-eslint/no-var-requires */
-    AbortController = polyfill.AbortController;
-}
-module.exports = AbortController;
-
-},{"abort-controller":20,"abortcontroller-polyfill/dist/cjs-ponyfill":19}],2:[function(require,module,exports){
-"use strict";
 var AirtableError = /** @class */ (function () {
     function AirtableError(error, message, statusCode) {
         this.error = error;
@@ -38,7 +19,7 @@ var AirtableError = /** @class */ (function () {
 }());
 module.exports = AirtableError;
 
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 "use strict";
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
@@ -58,7 +39,6 @@ var get_1 = __importDefault(require("lodash/get"));
 var isPlainObject_1 = __importDefault(require("lodash/isPlainObject"));
 var keys_1 = __importDefault(require("lodash/keys"));
 var fetch_1 = __importDefault(require("./fetch"));
-var abort_controller_1 = __importDefault(require("./abort-controller"));
 var object_to_query_param_string_1 = __importDefault(require("./object_to_query_param_string"));
 var airtable_error_1 = __importDefault(require("./airtable_error"));
 var table_1 = __importDefault(require("./table"));
@@ -81,23 +61,17 @@ var Base = /** @class */ (function () {
         if (options === void 0) { options = {}; }
         var method = get_1.default(options, 'method', 'GET').toUpperCase();
         var url = this._airtable._endpointUrl + "/v" + this._airtable._apiVersionMajor + "/" + this._id + get_1.default(options, 'path', '/') + "?" + object_to_query_param_string_1.default(get_1.default(options, 'qs', {}));
-        var controller = new abort_controller_1.default();
         var headers = this._getRequestHeaders(Object.assign({}, this._airtable._customHeaders, (_a = options.headers) !== null && _a !== void 0 ? _a : {}));
         var requestOptions = {
             method: method,
             headers: headers,
-            signal: controller.signal,
         };
         if ('body' in options && _canRequestMethodIncludeBody(method)) {
             requestOptions.body = JSON.stringify(options.body);
         }
-        var timeout = setTimeout(function () {
-            controller.abort();
-        }, this._airtable._requestTimeout);
         return new Promise(function (resolve, reject) {
             fetch_1.default(url, requestOptions)
                 .then(function (resp) {
-                clearTimeout(timeout);
                 if (resp.status === 429 && !_this._airtable._noRetryIfRateLimited) {
                     var numAttempts_1 = get_1.default(options, '_numAttempts', 0);
                     var backoffDelayMs = exponential_backoff_with_jitter_1.default(numAttempts_1);
@@ -131,7 +105,6 @@ var Base = /** @class */ (function () {
                 }
             })
                 .catch(function (err) {
-                clearTimeout(timeout);
                 err = new airtable_error_1.default('CONNECTION_ERROR', err.message, null);
                 reject(err);
             });
@@ -221,7 +194,7 @@ function _getErrorForNonObjectBody(statusCode, body) {
 }
 module.exports = Base;
 
-},{"./abort-controller":1,"./airtable_error":2,"./exponential_backoff_with_jitter":6,"./fetch":7,"./http_headers":9,"./object_to_query_param_string":11,"./package_version":12,"./run_action":16,"./table":17,"lodash/get":77,"lodash/isPlainObject":89,"lodash/keys":93}],4:[function(require,module,exports){
+},{"./airtable_error":1,"./exponential_backoff_with_jitter":5,"./fetch":6,"./http_headers":8,"./object_to_query_param_string":10,"./package_version":11,"./run_action":15,"./table":16,"lodash/get":75,"lodash/isPlainObject":87,"lodash/keys":91}],3:[function(require,module,exports){
 "use strict";
 /**
  * Given a function fn that takes a callback as its last argument, returns
@@ -276,7 +249,7 @@ function callbackToPromise(fn, context, callbackArgIndex) {
 }
 module.exports = callbackToPromise;
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 "use strict";
 var didWarnForDeprecation = {};
 /**
@@ -305,7 +278,7 @@ function deprecate(fn, key, message) {
 }
 module.exports = deprecate;
 
-},{}],6:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -320,7 +293,7 @@ function exponentialBackoffWithJitter(numberOfRetries) {
 }
 module.exports = exponentialBackoffWithJitter;
 
-},{"./internal_config.json":10}],7:[function(require,module,exports){
+},{"./internal_config.json":9}],6:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -330,7 +303,7 @@ var node_fetch_1 = __importDefault(require("node-fetch"));
 var browserGlobal = typeof window !== 'undefined' ? window : typeof self !== 'undefined' ? self : null; // self is the global in web workers
 module.exports = !browserGlobal ? node_fetch_1.default : browserGlobal.fetch.bind(browserGlobal);
 
-},{"node-fetch":20}],8:[function(require,module,exports){
+},{"node-fetch":18}],7:[function(require,module,exports){
 "use strict";
 /* eslint-enable @typescript-eslint/no-explicit-any */
 function has(object, property) {
@@ -338,7 +311,7 @@ function has(object, property) {
 }
 module.exports = has;
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -383,13 +356,13 @@ var HttpHeaders = /** @class */ (function () {
 }());
 module.exports = HttpHeaders;
 
-},{"lodash/keys":93}],10:[function(require,module,exports){
+},{"lodash/keys":91}],9:[function(require,module,exports){
 module.exports={
     "INITIAL_RETRY_DELAY_IF_RATE_LIMITED": 5000,
     "MAX_RETRY_DELAY_IF_RATE_LIMITED": 600000
 }
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -443,11 +416,11 @@ function objectToQueryParamString(obj) {
 }
 module.exports = objectToQueryParamString;
 
-},{"lodash/isArray":79,"lodash/isNil":85,"lodash/keys":93}],12:[function(require,module,exports){
+},{"lodash/isArray":77,"lodash/isNil":83,"lodash/keys":91}],11:[function(require,module,exports){
 "use strict";
-module.exports = "0.12.2";
+module.exports = "0.12.5";
 
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 "use strict";
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
@@ -636,7 +609,7 @@ function all(done) {
 }
 module.exports = Query;
 
-},{"./callback_to_promise":4,"./has":8,"./object_to_query_param_string":11,"./query_params":14,"./record":15,"lodash/isFunction":83,"lodash/keys":93}],14:[function(require,module,exports){
+},{"./callback_to_promise":3,"./has":7,"./object_to_query_param_string":10,"./query_params":13,"./record":14,"lodash/isFunction":81,"lodash/keys":91}],13:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -678,7 +651,7 @@ exports.shouldListRecordsParamBePassedAsParameter = function (paramName) {
     return paramName === 'timeZone' || paramName === 'userLocale';
 };
 
-},{"./typecheck":18,"lodash/isBoolean":81,"lodash/isNumber":86,"lodash/isPlainObject":89,"lodash/isString":90}],15:[function(require,module,exports){
+},{"./typecheck":17,"lodash/isBoolean":79,"lodash/isNumber":84,"lodash/isPlainObject":87,"lodash/isString":88}],14:[function(require,module,exports){
 "use strict";
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
@@ -784,7 +757,7 @@ function fetch(done) {
 }
 module.exports = Record;
 
-},{"./callback_to_promise":4}],16:[function(require,module,exports){
+},{"./callback_to_promise":3}],15:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -793,7 +766,6 @@ var exponential_backoff_with_jitter_1 = __importDefault(require("./exponential_b
 var object_to_query_param_string_1 = __importDefault(require("./object_to_query_param_string"));
 var package_version_1 = __importDefault(require("./package_version"));
 var fetch_1 = __importDefault(require("./fetch"));
-var abort_controller_1 = __importDefault(require("./abort-controller"));
 var userAgent = "Airtable.js/" + package_version_1.default;
 function runAction(base, method, path, queryParams, bodyData, callback, numAttempts) {
     var url = base._airtable._endpointUrl + "/v" + base._airtable._apiVersionMajor + "/" + base._id + path + "?" + object_to_query_param_string_1.default(queryParams);
@@ -812,12 +784,10 @@ function runAction(base, method, path, queryParams, bodyData, callback, numAttem
     else {
         headers['User-Agent'] = userAgent;
     }
-    var controller = new abort_controller_1.default();
     var normalizedMethod = method.toUpperCase();
     var options = {
         method: normalizedMethod,
         headers: headers,
-        signal: controller.signal,
     };
     if (bodyData !== null) {
         if (normalizedMethod === 'GET' || normalizedMethod === 'HEAD') {
@@ -827,12 +797,8 @@ function runAction(base, method, path, queryParams, bodyData, callback, numAttem
             options.body = JSON.stringify(bodyData);
         }
     }
-    var timeout = setTimeout(function () {
-        controller.abort();
-    }, base._airtable._requestTimeout);
     fetch_1.default(url, options)
         .then(function (resp) {
-        clearTimeout(timeout);
         if (resp.status === 429 && !base._airtable._noRetryIfRateLimited) {
             var backoffDelayMs = exponential_backoff_with_jitter_1.default(numAttempts);
             setTimeout(function () {
@@ -859,13 +825,12 @@ function runAction(base, method, path, queryParams, bodyData, callback, numAttem
         }
     })
         .catch(function (error) {
-        clearTimeout(timeout);
         callback(error);
     });
 }
 module.exports = runAction;
 
-},{"./abort-controller":1,"./exponential_backoff_with_jitter":6,"./fetch":7,"./object_to_query_param_string":11,"./package_version":12}],17:[function(require,module,exports){
+},{"./exponential_backoff_with_jitter":5,"./fetch":6,"./object_to_query_param_string":10,"./package_version":11}],16:[function(require,module,exports){
 "use strict";
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
@@ -1103,7 +1068,7 @@ var Table = /** @class */ (function () {
 }());
 module.exports = Table;
 
-},{"./callback_to_promise":4,"./deprecate":5,"./object_to_query_param_string":11,"./query":13,"./query_params":14,"./record":15,"lodash/isPlainObject":89}],18:[function(require,module,exports){
+},{"./callback_to_promise":3,"./deprecate":4,"./object_to_query_param_string":10,"./query":12,"./query_params":13,"./record":14,"lodash/isPlainObject":87}],17:[function(require,module,exports){
 "use strict";
 /* eslint-enable @typescript-eslint/no-explicit-any */
 function check(fn, error) {
@@ -1126,458 +1091,9 @@ check.isArrayOf = function (itemValidator) {
 };
 module.exports = check;
 
+},{}],18:[function(require,module,exports){
+
 },{}],19:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _classCallCheck(instance, Constructor) {
-  if (!(instance instanceof Constructor)) {
-    throw new TypeError("Cannot call a class as a function");
-  }
-}
-
-function _defineProperties(target, props) {
-  for (var i = 0; i < props.length; i++) {
-    var descriptor = props[i];
-    descriptor.enumerable = descriptor.enumerable || false;
-    descriptor.configurable = true;
-    if ("value" in descriptor) descriptor.writable = true;
-    Object.defineProperty(target, descriptor.key, descriptor);
-  }
-}
-
-function _createClass(Constructor, protoProps, staticProps) {
-  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
-  if (staticProps) _defineProperties(Constructor, staticProps);
-  return Constructor;
-}
-
-function _inherits(subClass, superClass) {
-  if (typeof superClass !== "function" && superClass !== null) {
-    throw new TypeError("Super expression must either be null or a function");
-  }
-
-  subClass.prototype = Object.create(superClass && superClass.prototype, {
-    constructor: {
-      value: subClass,
-      writable: true,
-      configurable: true
-    }
-  });
-  if (superClass) _setPrototypeOf(subClass, superClass);
-}
-
-function _getPrototypeOf(o) {
-  _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) {
-    return o.__proto__ || Object.getPrototypeOf(o);
-  };
-  return _getPrototypeOf(o);
-}
-
-function _setPrototypeOf(o, p) {
-  _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
-    o.__proto__ = p;
-    return o;
-  };
-
-  return _setPrototypeOf(o, p);
-}
-
-function _assertThisInitialized(self) {
-  if (self === void 0) {
-    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-  }
-
-  return self;
-}
-
-function _possibleConstructorReturn(self, call) {
-  if (call && (typeof call === "object" || typeof call === "function")) {
-    return call;
-  }
-
-  return _assertThisInitialized(self);
-}
-
-function _superPropBase(object, property) {
-  while (!Object.prototype.hasOwnProperty.call(object, property)) {
-    object = _getPrototypeOf(object);
-    if (object === null) break;
-  }
-
-  return object;
-}
-
-function _get(target, property, receiver) {
-  if (typeof Reflect !== "undefined" && Reflect.get) {
-    _get = Reflect.get;
-  } else {
-    _get = function _get(target, property, receiver) {
-      var base = _superPropBase(target, property);
-
-      if (!base) return;
-      var desc = Object.getOwnPropertyDescriptor(base, property);
-
-      if (desc.get) {
-        return desc.get.call(receiver);
-      }
-
-      return desc.value;
-    };
-  }
-
-  return _get(target, property, receiver || target);
-}
-
-var Emitter =
-/*#__PURE__*/
-function () {
-  function Emitter() {
-    _classCallCheck(this, Emitter);
-
-    Object.defineProperty(this, 'listeners', {
-      value: {},
-      writable: true,
-      configurable: true
-    });
-  }
-
-  _createClass(Emitter, [{
-    key: "addEventListener",
-    value: function addEventListener(type, callback) {
-      if (!(type in this.listeners)) {
-        this.listeners[type] = [];
-      }
-
-      this.listeners[type].push(callback);
-    }
-  }, {
-    key: "removeEventListener",
-    value: function removeEventListener(type, callback) {
-      if (!(type in this.listeners)) {
-        return;
-      }
-
-      var stack = this.listeners[type];
-
-      for (var i = 0, l = stack.length; i < l; i++) {
-        if (stack[i] === callback) {
-          stack.splice(i, 1);
-          return;
-        }
-      }
-    }
-  }, {
-    key: "dispatchEvent",
-    value: function dispatchEvent(event) {
-      var _this = this;
-
-      if (!(event.type in this.listeners)) {
-        return;
-      }
-
-      var debounce = function debounce(callback) {
-        setTimeout(function () {
-          return callback.call(_this, event);
-        });
-      };
-
-      var stack = this.listeners[event.type];
-
-      for (var i = 0, l = stack.length; i < l; i++) {
-        debounce(stack[i]);
-      }
-
-      return !event.defaultPrevented;
-    }
-  }]);
-
-  return Emitter;
-}();
-
-var AbortSignal =
-/*#__PURE__*/
-function (_Emitter) {
-  _inherits(AbortSignal, _Emitter);
-
-  function AbortSignal() {
-    var _this2;
-
-    _classCallCheck(this, AbortSignal);
-
-    _this2 = _possibleConstructorReturn(this, _getPrototypeOf(AbortSignal).call(this)); // Some versions of babel does not transpile super() correctly for IE <= 10, if the parent
-    // constructor has failed to run, then "this.listeners" will still be undefined and then we call
-    // the parent constructor directly instead as a workaround. For general details, see babel bug:
-    // https://github.com/babel/babel/issues/3041
-    // This hack was added as a fix for the issue described here:
-    // https://github.com/Financial-Times/polyfill-library/pull/59#issuecomment-477558042
-
-    if (!_this2.listeners) {
-      Emitter.call(_assertThisInitialized(_this2));
-    } // Compared to assignment, Object.defineProperty makes properties non-enumerable by default and
-    // we want Object.keys(new AbortController().signal) to be [] for compat with the native impl
-
-
-    Object.defineProperty(_assertThisInitialized(_this2), 'aborted', {
-      value: false,
-      writable: true,
-      configurable: true
-    });
-    Object.defineProperty(_assertThisInitialized(_this2), 'onabort', {
-      value: null,
-      writable: true,
-      configurable: true
-    });
-    return _this2;
-  }
-
-  _createClass(AbortSignal, [{
-    key: "toString",
-    value: function toString() {
-      return '[object AbortSignal]';
-    }
-  }, {
-    key: "dispatchEvent",
-    value: function dispatchEvent(event) {
-      if (event.type === 'abort') {
-        this.aborted = true;
-
-        if (typeof this.onabort === 'function') {
-          this.onabort.call(this, event);
-        }
-      }
-
-      _get(_getPrototypeOf(AbortSignal.prototype), "dispatchEvent", this).call(this, event);
-    }
-  }]);
-
-  return AbortSignal;
-}(Emitter);
-var AbortController =
-/*#__PURE__*/
-function () {
-  function AbortController() {
-    _classCallCheck(this, AbortController);
-
-    // Compared to assignment, Object.defineProperty makes properties non-enumerable by default and
-    // we want Object.keys(new AbortController()) to be [] for compat with the native impl
-    Object.defineProperty(this, 'signal', {
-      value: new AbortSignal(),
-      writable: true,
-      configurable: true
-    });
-  }
-
-  _createClass(AbortController, [{
-    key: "abort",
-    value: function abort() {
-      var event;
-
-      try {
-        event = new Event('abort');
-      } catch (e) {
-        if (typeof document !== 'undefined') {
-          if (!document.createEvent) {
-            // For Internet Explorer 8:
-            event = document.createEventObject();
-            event.type = 'abort';
-          } else {
-            // For Internet Explorer 11:
-            event = document.createEvent('Event');
-            event.initEvent('abort', false, false);
-          }
-        } else {
-          // Fallback where document isn't available:
-          event = {
-            type: 'abort',
-            bubbles: false,
-            cancelable: false
-          };
-        }
-      }
-
-      this.signal.dispatchEvent(event);
-    }
-  }, {
-    key: "toString",
-    value: function toString() {
-      return '[object AbortController]';
-    }
-  }]);
-
-  return AbortController;
-}();
-
-if (typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-  // These are necessary to make sure that we get correct output for:
-  // Object.prototype.toString.call(new AbortController())
-  AbortController.prototype[Symbol.toStringTag] = 'AbortController';
-  AbortSignal.prototype[Symbol.toStringTag] = 'AbortSignal';
-}
-
-function polyfillNeeded(self) {
-  if (self.__FORCE_INSTALL_ABORTCONTROLLER_POLYFILL) {
-    console.log('__FORCE_INSTALL_ABORTCONTROLLER_POLYFILL=true is set, will force install polyfill');
-    return true;
-  } // Note that the "unfetch" minimal fetch polyfill defines fetch() without
-  // defining window.Request, and this polyfill need to work on top of unfetch
-  // so the below feature detection needs the !self.AbortController part.
-  // The Request.prototype check is also needed because Safari versions 11.1.2
-  // up to and including 12.1.x has a window.AbortController present but still
-  // does NOT correctly implement abortable fetch:
-  // https://bugs.webkit.org/show_bug.cgi?id=174980#c2
-
-
-  return typeof self.Request === 'function' && !self.Request.prototype.hasOwnProperty('signal') || !self.AbortController;
-}
-
-/**
- * Note: the "fetch.Request" default value is available for fetch imported from
- * the "node-fetch" package and not in browsers. This is OK since browsers
- * will be importing umd-polyfill.js from that path "self" is passed the
- * decorator so the default value will not be used (because browsers that define
- * fetch also has Request). One quirky setup where self.fetch exists but
- * self.Request does not is when the "unfetch" minimal fetch polyfill is used
- * on top of IE11; for this case the browser will try to use the fetch.Request
- * default value which in turn will be undefined but then then "if (Request)"
- * will ensure that you get a patched fetch but still no Request (as expected).
- * @param {fetch, Request = fetch.Request}
- * @returns {fetch: abortableFetch, Request: AbortableRequest}
- */
-
-function abortableFetchDecorator(patchTargets) {
-  if ('function' === typeof patchTargets) {
-    patchTargets = {
-      fetch: patchTargets
-    };
-  }
-
-  var _patchTargets = patchTargets,
-      fetch = _patchTargets.fetch,
-      _patchTargets$Request = _patchTargets.Request,
-      NativeRequest = _patchTargets$Request === void 0 ? fetch.Request : _patchTargets$Request,
-      NativeAbortController = _patchTargets.AbortController,
-      _patchTargets$__FORCE = _patchTargets.__FORCE_INSTALL_ABORTCONTROLLER_POLYFILL,
-      __FORCE_INSTALL_ABORTCONTROLLER_POLYFILL = _patchTargets$__FORCE === void 0 ? false : _patchTargets$__FORCE;
-
-  if (!polyfillNeeded({
-    fetch: fetch,
-    Request: NativeRequest,
-    AbortController: NativeAbortController,
-    __FORCE_INSTALL_ABORTCONTROLLER_POLYFILL: __FORCE_INSTALL_ABORTCONTROLLER_POLYFILL
-  })) {
-    return {
-      fetch: fetch,
-      Request: Request
-    };
-  }
-
-  var Request = NativeRequest; // Note that the "unfetch" minimal fetch polyfill defines fetch() without
-  // defining window.Request, and this polyfill need to work on top of unfetch
-  // hence we only patch it if it's available. Also we don't patch it if signal
-  // is already available on the Request prototype because in this case support
-  // is present and the patching below can cause a crash since it assigns to
-  // request.signal which is technically a read-only property. This latter error
-  // happens when you run the main5.js node-fetch example in the repo
-  // "abortcontroller-polyfill-examples". The exact error is:
-  //   request.signal = init.signal;
-  //   ^
-  // TypeError: Cannot set property signal of #<Request> which has only a getter
-
-  if (Request && !Request.prototype.hasOwnProperty('signal') || __FORCE_INSTALL_ABORTCONTROLLER_POLYFILL) {
-    Request = function Request(input, init) {
-      var signal;
-
-      if (init && init.signal) {
-        signal = init.signal; // Never pass init.signal to the native Request implementation when the polyfill has
-        // been installed because if we're running on top of a browser with a
-        // working native AbortController (i.e. the polyfill was installed due to
-        // __FORCE_INSTALL_ABORTCONTROLLER_POLYFILL being set), then passing our
-        // fake AbortSignal to the native fetch will trigger:
-        // TypeError: Failed to construct 'Request': member signal is not of type AbortSignal.
-
-        delete init.signal;
-      }
-
-      var request = new NativeRequest(input, init);
-
-      if (signal) {
-        Object.defineProperty(request, 'signal', {
-          writable: false,
-          enumerable: false,
-          configurable: true,
-          value: signal
-        });
-      }
-
-      return request;
-    };
-
-    Request.prototype = NativeRequest.prototype;
-  }
-
-  var realFetch = fetch;
-
-  var abortableFetch = function abortableFetch(input, init) {
-    var signal = Request && Request.prototype.isPrototypeOf(input) ? input.signal : init ? init.signal : undefined;
-
-    if (signal) {
-      var abortError;
-
-      try {
-        abortError = new DOMException('Aborted', 'AbortError');
-      } catch (err) {
-        // IE 11 does not support calling the DOMException constructor, use a
-        // regular error object on it instead.
-        abortError = new Error('Aborted');
-        abortError.name = 'AbortError';
-      } // Return early if already aborted, thus avoiding making an HTTP request
-
-
-      if (signal.aborted) {
-        return Promise.reject(abortError);
-      } // Turn an event into a promise, reject it once `abort` is dispatched
-
-
-      var cancellation = new Promise(function (_, reject) {
-        signal.addEventListener('abort', function () {
-          return reject(abortError);
-        }, {
-          once: true
-        });
-      });
-
-      if (init && init.signal) {
-        // Never pass .signal to the native implementation when the polyfill has
-        // been installed because if we're running on top of a browser with a
-        // working native AbortController (i.e. the polyfill was installed due to
-        // __FORCE_INSTALL_ABORTCONTROLLER_POLYFILL being set), then passing our
-        // fake AbortSignal to the native fetch will trigger:
-        // TypeError: Failed to execute 'fetch' on 'Window': member signal is not of type AbortSignal.
-        delete init.signal;
-      } // Return the fastest promise (don't need to wait for request to finish)
-
-
-      return Promise.race([cancellation, realFetch(input, init)]);
-    }
-
-    return realFetch(input, init);
-  };
-
-  return {
-    fetch: abortableFetch,
-    Request: Request
-  };
-}
-
-exports.AbortController = AbortController;
-exports.AbortSignal = AbortSignal;
-exports.abortableFetch = abortableFetchDecorator;
-
-},{}],20:[function(require,module,exports){
-
-},{}],21:[function(require,module,exports){
 var hashClear = require('./_hashClear'),
     hashDelete = require('./_hashDelete'),
     hashGet = require('./_hashGet'),
@@ -1611,7 +1127,7 @@ Hash.prototype.set = hashSet;
 
 module.exports = Hash;
 
-},{"./_hashClear":46,"./_hashDelete":47,"./_hashGet":48,"./_hashHas":49,"./_hashSet":50}],22:[function(require,module,exports){
+},{"./_hashClear":44,"./_hashDelete":45,"./_hashGet":46,"./_hashHas":47,"./_hashSet":48}],20:[function(require,module,exports){
 var listCacheClear = require('./_listCacheClear'),
     listCacheDelete = require('./_listCacheDelete'),
     listCacheGet = require('./_listCacheGet'),
@@ -1645,7 +1161,7 @@ ListCache.prototype.set = listCacheSet;
 
 module.exports = ListCache;
 
-},{"./_listCacheClear":56,"./_listCacheDelete":57,"./_listCacheGet":58,"./_listCacheHas":59,"./_listCacheSet":60}],23:[function(require,module,exports){
+},{"./_listCacheClear":54,"./_listCacheDelete":55,"./_listCacheGet":56,"./_listCacheHas":57,"./_listCacheSet":58}],21:[function(require,module,exports){
 var getNative = require('./_getNative'),
     root = require('./_root');
 
@@ -1654,7 +1170,7 @@ var Map = getNative(root, 'Map');
 
 module.exports = Map;
 
-},{"./_getNative":42,"./_root":72}],24:[function(require,module,exports){
+},{"./_getNative":40,"./_root":70}],22:[function(require,module,exports){
 var mapCacheClear = require('./_mapCacheClear'),
     mapCacheDelete = require('./_mapCacheDelete'),
     mapCacheGet = require('./_mapCacheGet'),
@@ -1688,7 +1204,7 @@ MapCache.prototype.set = mapCacheSet;
 
 module.exports = MapCache;
 
-},{"./_mapCacheClear":61,"./_mapCacheDelete":62,"./_mapCacheGet":63,"./_mapCacheHas":64,"./_mapCacheSet":65}],25:[function(require,module,exports){
+},{"./_mapCacheClear":59,"./_mapCacheDelete":60,"./_mapCacheGet":61,"./_mapCacheHas":62,"./_mapCacheSet":63}],23:[function(require,module,exports){
 var root = require('./_root');
 
 /** Built-in value references. */
@@ -1696,7 +1212,7 @@ var Symbol = root.Symbol;
 
 module.exports = Symbol;
 
-},{"./_root":72}],26:[function(require,module,exports){
+},{"./_root":70}],24:[function(require,module,exports){
 var baseTimes = require('./_baseTimes'),
     isArguments = require('./isArguments'),
     isArray = require('./isArray'),
@@ -1747,7 +1263,7 @@ function arrayLikeKeys(value, inherited) {
 
 module.exports = arrayLikeKeys;
 
-},{"./_baseTimes":35,"./_isIndex":51,"./isArguments":78,"./isArray":79,"./isBuffer":82,"./isTypedArray":92}],27:[function(require,module,exports){
+},{"./_baseTimes":33,"./_isIndex":49,"./isArguments":76,"./isArray":77,"./isBuffer":80,"./isTypedArray":90}],25:[function(require,module,exports){
 /**
  * A specialized version of `_.map` for arrays without support for iteratee
  * shorthands.
@@ -1770,7 +1286,7 @@ function arrayMap(array, iteratee) {
 
 module.exports = arrayMap;
 
-},{}],28:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var eq = require('./eq');
 
 /**
@@ -1793,7 +1309,7 @@ function assocIndexOf(array, key) {
 
 module.exports = assocIndexOf;
 
-},{"./eq":76}],29:[function(require,module,exports){
+},{"./eq":74}],27:[function(require,module,exports){
 var castPath = require('./_castPath'),
     toKey = require('./_toKey');
 
@@ -1819,7 +1335,7 @@ function baseGet(object, path) {
 
 module.exports = baseGet;
 
-},{"./_castPath":38,"./_toKey":74}],30:[function(require,module,exports){
+},{"./_castPath":36,"./_toKey":72}],28:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     getRawTag = require('./_getRawTag'),
     objectToString = require('./_objectToString');
@@ -1849,7 +1365,7 @@ function baseGetTag(value) {
 
 module.exports = baseGetTag;
 
-},{"./_Symbol":25,"./_getRawTag":44,"./_objectToString":70}],31:[function(require,module,exports){
+},{"./_Symbol":23,"./_getRawTag":42,"./_objectToString":68}],29:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObjectLike = require('./isObjectLike');
 
@@ -1869,7 +1385,7 @@ function baseIsArguments(value) {
 
 module.exports = baseIsArguments;
 
-},{"./_baseGetTag":30,"./isObjectLike":88}],32:[function(require,module,exports){
+},{"./_baseGetTag":28,"./isObjectLike":86}],30:[function(require,module,exports){
 var isFunction = require('./isFunction'),
     isMasked = require('./_isMasked'),
     isObject = require('./isObject'),
@@ -1918,7 +1434,7 @@ function baseIsNative(value) {
 
 module.exports = baseIsNative;
 
-},{"./_isMasked":54,"./_toSource":75,"./isFunction":83,"./isObject":87}],33:[function(require,module,exports){
+},{"./_isMasked":52,"./_toSource":73,"./isFunction":81,"./isObject":85}],31:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isLength = require('./isLength'),
     isObjectLike = require('./isObjectLike');
@@ -1980,7 +1496,7 @@ function baseIsTypedArray(value) {
 
 module.exports = baseIsTypedArray;
 
-},{"./_baseGetTag":30,"./isLength":84,"./isObjectLike":88}],34:[function(require,module,exports){
+},{"./_baseGetTag":28,"./isLength":82,"./isObjectLike":86}],32:[function(require,module,exports){
 var isPrototype = require('./_isPrototype'),
     nativeKeys = require('./_nativeKeys');
 
@@ -2012,7 +1528,7 @@ function baseKeys(object) {
 
 module.exports = baseKeys;
 
-},{"./_isPrototype":55,"./_nativeKeys":68}],35:[function(require,module,exports){
+},{"./_isPrototype":53,"./_nativeKeys":66}],33:[function(require,module,exports){
 /**
  * The base implementation of `_.times` without support for iteratee shorthands
  * or max array length checks.
@@ -2034,7 +1550,7 @@ function baseTimes(n, iteratee) {
 
 module.exports = baseTimes;
 
-},{}],36:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 var Symbol = require('./_Symbol'),
     arrayMap = require('./_arrayMap'),
     isArray = require('./isArray'),
@@ -2073,7 +1589,7 @@ function baseToString(value) {
 
 module.exports = baseToString;
 
-},{"./_Symbol":25,"./_arrayMap":27,"./isArray":79,"./isSymbol":91}],37:[function(require,module,exports){
+},{"./_Symbol":23,"./_arrayMap":25,"./isArray":77,"./isSymbol":89}],35:[function(require,module,exports){
 /**
  * The base implementation of `_.unary` without support for storing metadata.
  *
@@ -2089,7 +1605,7 @@ function baseUnary(func) {
 
 module.exports = baseUnary;
 
-},{}],38:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 var isArray = require('./isArray'),
     isKey = require('./_isKey'),
     stringToPath = require('./_stringToPath'),
@@ -2112,7 +1628,7 @@ function castPath(value, object) {
 
 module.exports = castPath;
 
-},{"./_isKey":52,"./_stringToPath":73,"./isArray":79,"./toString":96}],39:[function(require,module,exports){
+},{"./_isKey":50,"./_stringToPath":71,"./isArray":77,"./toString":94}],37:[function(require,module,exports){
 var root = require('./_root');
 
 /** Used to detect overreaching core-js shims. */
@@ -2120,7 +1636,7 @@ var coreJsData = root['__core-js_shared__'];
 
 module.exports = coreJsData;
 
-},{"./_root":72}],40:[function(require,module,exports){
+},{"./_root":70}],38:[function(require,module,exports){
 (function (global){
 /** Detect free variable `global` from Node.js. */
 var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
@@ -2128,7 +1644,7 @@ var freeGlobal = typeof global == 'object' && global && global.Object === Object
 module.exports = freeGlobal;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],41:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 var isKeyable = require('./_isKeyable');
 
 /**
@@ -2148,7 +1664,7 @@ function getMapData(map, key) {
 
 module.exports = getMapData;
 
-},{"./_isKeyable":53}],42:[function(require,module,exports){
+},{"./_isKeyable":51}],40:[function(require,module,exports){
 var baseIsNative = require('./_baseIsNative'),
     getValue = require('./_getValue');
 
@@ -2167,7 +1683,7 @@ function getNative(object, key) {
 
 module.exports = getNative;
 
-},{"./_baseIsNative":32,"./_getValue":45}],43:[function(require,module,exports){
+},{"./_baseIsNative":30,"./_getValue":43}],41:[function(require,module,exports){
 var overArg = require('./_overArg');
 
 /** Built-in value references. */
@@ -2175,7 +1691,7 @@ var getPrototype = overArg(Object.getPrototypeOf, Object);
 
 module.exports = getPrototype;
 
-},{"./_overArg":71}],44:[function(require,module,exports){
+},{"./_overArg":69}],42:[function(require,module,exports){
 var Symbol = require('./_Symbol');
 
 /** Used for built-in method references. */
@@ -2223,7 +1739,7 @@ function getRawTag(value) {
 
 module.exports = getRawTag;
 
-},{"./_Symbol":25}],45:[function(require,module,exports){
+},{"./_Symbol":23}],43:[function(require,module,exports){
 /**
  * Gets the value at `key` of `object`.
  *
@@ -2238,7 +1754,7 @@ function getValue(object, key) {
 
 module.exports = getValue;
 
-},{}],46:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /**
@@ -2255,7 +1771,7 @@ function hashClear() {
 
 module.exports = hashClear;
 
-},{"./_nativeCreate":67}],47:[function(require,module,exports){
+},{"./_nativeCreate":65}],45:[function(require,module,exports){
 /**
  * Removes `key` and its value from the hash.
  *
@@ -2274,7 +1790,7 @@ function hashDelete(key) {
 
 module.exports = hashDelete;
 
-},{}],48:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used to stand-in for `undefined` hash values. */
@@ -2306,7 +1822,7 @@ function hashGet(key) {
 
 module.exports = hashGet;
 
-},{"./_nativeCreate":67}],49:[function(require,module,exports){
+},{"./_nativeCreate":65}],47:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used for built-in method references. */
@@ -2331,7 +1847,7 @@ function hashHas(key) {
 
 module.exports = hashHas;
 
-},{"./_nativeCreate":67}],50:[function(require,module,exports){
+},{"./_nativeCreate":65}],48:[function(require,module,exports){
 var nativeCreate = require('./_nativeCreate');
 
 /** Used to stand-in for `undefined` hash values. */
@@ -2356,7 +1872,7 @@ function hashSet(key, value) {
 
 module.exports = hashSet;
 
-},{"./_nativeCreate":67}],51:[function(require,module,exports){
+},{"./_nativeCreate":65}],49:[function(require,module,exports){
 /** Used as references for various `Number` constants. */
 var MAX_SAFE_INTEGER = 9007199254740991;
 
@@ -2383,7 +1899,7 @@ function isIndex(value, length) {
 
 module.exports = isIndex;
 
-},{}],52:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 var isArray = require('./isArray'),
     isSymbol = require('./isSymbol');
 
@@ -2414,7 +1930,7 @@ function isKey(value, object) {
 
 module.exports = isKey;
 
-},{"./isArray":79,"./isSymbol":91}],53:[function(require,module,exports){
+},{"./isArray":77,"./isSymbol":89}],51:[function(require,module,exports){
 /**
  * Checks if `value` is suitable for use as unique object key.
  *
@@ -2431,7 +1947,7 @@ function isKeyable(value) {
 
 module.exports = isKeyable;
 
-},{}],54:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 var coreJsData = require('./_coreJsData');
 
 /** Used to detect methods masquerading as native. */
@@ -2453,7 +1969,7 @@ function isMasked(func) {
 
 module.exports = isMasked;
 
-},{"./_coreJsData":39}],55:[function(require,module,exports){
+},{"./_coreJsData":37}],53:[function(require,module,exports){
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
 
@@ -2473,7 +1989,7 @@ function isPrototype(value) {
 
 module.exports = isPrototype;
 
-},{}],56:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 /**
  * Removes all key-value entries from the list cache.
  *
@@ -2488,7 +2004,7 @@ function listCacheClear() {
 
 module.exports = listCacheClear;
 
-},{}],57:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /** Used for built-in method references. */
@@ -2525,7 +2041,7 @@ function listCacheDelete(key) {
 
 module.exports = listCacheDelete;
 
-},{"./_assocIndexOf":28}],58:[function(require,module,exports){
+},{"./_assocIndexOf":26}],56:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -2546,7 +2062,7 @@ function listCacheGet(key) {
 
 module.exports = listCacheGet;
 
-},{"./_assocIndexOf":28}],59:[function(require,module,exports){
+},{"./_assocIndexOf":26}],57:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -2564,7 +2080,7 @@ function listCacheHas(key) {
 
 module.exports = listCacheHas;
 
-},{"./_assocIndexOf":28}],60:[function(require,module,exports){
+},{"./_assocIndexOf":26}],58:[function(require,module,exports){
 var assocIndexOf = require('./_assocIndexOf');
 
 /**
@@ -2592,7 +2108,7 @@ function listCacheSet(key, value) {
 
 module.exports = listCacheSet;
 
-},{"./_assocIndexOf":28}],61:[function(require,module,exports){
+},{"./_assocIndexOf":26}],59:[function(require,module,exports){
 var Hash = require('./_Hash'),
     ListCache = require('./_ListCache'),
     Map = require('./_Map');
@@ -2615,7 +2131,7 @@ function mapCacheClear() {
 
 module.exports = mapCacheClear;
 
-},{"./_Hash":21,"./_ListCache":22,"./_Map":23}],62:[function(require,module,exports){
+},{"./_Hash":19,"./_ListCache":20,"./_Map":21}],60:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -2635,7 +2151,7 @@ function mapCacheDelete(key) {
 
 module.exports = mapCacheDelete;
 
-},{"./_getMapData":41}],63:[function(require,module,exports){
+},{"./_getMapData":39}],61:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -2653,7 +2169,7 @@ function mapCacheGet(key) {
 
 module.exports = mapCacheGet;
 
-},{"./_getMapData":41}],64:[function(require,module,exports){
+},{"./_getMapData":39}],62:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -2671,7 +2187,7 @@ function mapCacheHas(key) {
 
 module.exports = mapCacheHas;
 
-},{"./_getMapData":41}],65:[function(require,module,exports){
+},{"./_getMapData":39}],63:[function(require,module,exports){
 var getMapData = require('./_getMapData');
 
 /**
@@ -2695,7 +2211,7 @@ function mapCacheSet(key, value) {
 
 module.exports = mapCacheSet;
 
-},{"./_getMapData":41}],66:[function(require,module,exports){
+},{"./_getMapData":39}],64:[function(require,module,exports){
 var memoize = require('./memoize');
 
 /** Used as the maximum memoize cache size. */
@@ -2723,7 +2239,7 @@ function memoizeCapped(func) {
 
 module.exports = memoizeCapped;
 
-},{"./memoize":94}],67:[function(require,module,exports){
+},{"./memoize":92}],65:[function(require,module,exports){
 var getNative = require('./_getNative');
 
 /* Built-in method references that are verified to be native. */
@@ -2731,7 +2247,7 @@ var nativeCreate = getNative(Object, 'create');
 
 module.exports = nativeCreate;
 
-},{"./_getNative":42}],68:[function(require,module,exports){
+},{"./_getNative":40}],66:[function(require,module,exports){
 var overArg = require('./_overArg');
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
@@ -2739,7 +2255,7 @@ var nativeKeys = overArg(Object.keys, Object);
 
 module.exports = nativeKeys;
 
-},{"./_overArg":71}],69:[function(require,module,exports){
+},{"./_overArg":69}],67:[function(require,module,exports){
 var freeGlobal = require('./_freeGlobal');
 
 /** Detect free variable `exports`. */
@@ -2771,7 +2287,7 @@ var nodeUtil = (function() {
 
 module.exports = nodeUtil;
 
-},{"./_freeGlobal":40}],70:[function(require,module,exports){
+},{"./_freeGlobal":38}],68:[function(require,module,exports){
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
 
@@ -2795,7 +2311,7 @@ function objectToString(value) {
 
 module.exports = objectToString;
 
-},{}],71:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 /**
  * Creates a unary function that invokes `func` with its argument transformed.
  *
@@ -2812,7 +2328,7 @@ function overArg(func, transform) {
 
 module.exports = overArg;
 
-},{}],72:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 var freeGlobal = require('./_freeGlobal');
 
 /** Detect free variable `self`. */
@@ -2823,7 +2339,7 @@ var root = freeGlobal || freeSelf || Function('return this')();
 
 module.exports = root;
 
-},{"./_freeGlobal":40}],73:[function(require,module,exports){
+},{"./_freeGlobal":38}],71:[function(require,module,exports){
 var memoizeCapped = require('./_memoizeCapped');
 
 /** Used to match property names within property paths. */
@@ -2852,7 +2368,7 @@ var stringToPath = memoizeCapped(function(string) {
 
 module.exports = stringToPath;
 
-},{"./_memoizeCapped":66}],74:[function(require,module,exports){
+},{"./_memoizeCapped":64}],72:[function(require,module,exports){
 var isSymbol = require('./isSymbol');
 
 /** Used as references for various `Number` constants. */
@@ -2875,7 +2391,7 @@ function toKey(value) {
 
 module.exports = toKey;
 
-},{"./isSymbol":91}],75:[function(require,module,exports){
+},{"./isSymbol":89}],73:[function(require,module,exports){
 /** Used for built-in method references. */
 var funcProto = Function.prototype;
 
@@ -2903,7 +2419,7 @@ function toSource(func) {
 
 module.exports = toSource;
 
-},{}],76:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 /**
  * Performs a
  * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
@@ -2942,7 +2458,7 @@ function eq(value, other) {
 
 module.exports = eq;
 
-},{}],77:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 var baseGet = require('./_baseGet');
 
 /**
@@ -2977,7 +2493,7 @@ function get(object, path, defaultValue) {
 
 module.exports = get;
 
-},{"./_baseGet":29}],78:[function(require,module,exports){
+},{"./_baseGet":27}],76:[function(require,module,exports){
 var baseIsArguments = require('./_baseIsArguments'),
     isObjectLike = require('./isObjectLike');
 
@@ -3015,7 +2531,7 @@ var isArguments = baseIsArguments(function() { return arguments; }()) ? baseIsAr
 
 module.exports = isArguments;
 
-},{"./_baseIsArguments":31,"./isObjectLike":88}],79:[function(require,module,exports){
+},{"./_baseIsArguments":29,"./isObjectLike":86}],77:[function(require,module,exports){
 /**
  * Checks if `value` is classified as an `Array` object.
  *
@@ -3043,7 +2559,7 @@ var isArray = Array.isArray;
 
 module.exports = isArray;
 
-},{}],80:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 var isFunction = require('./isFunction'),
     isLength = require('./isLength');
 
@@ -3078,7 +2594,7 @@ function isArrayLike(value) {
 
 module.exports = isArrayLike;
 
-},{"./isFunction":83,"./isLength":84}],81:[function(require,module,exports){
+},{"./isFunction":81,"./isLength":82}],79:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObjectLike = require('./isObjectLike');
 
@@ -3109,7 +2625,7 @@ function isBoolean(value) {
 
 module.exports = isBoolean;
 
-},{"./_baseGetTag":30,"./isObjectLike":88}],82:[function(require,module,exports){
+},{"./_baseGetTag":28,"./isObjectLike":86}],80:[function(require,module,exports){
 var root = require('./_root'),
     stubFalse = require('./stubFalse');
 
@@ -3149,7 +2665,7 @@ var isBuffer = nativeIsBuffer || stubFalse;
 
 module.exports = isBuffer;
 
-},{"./_root":72,"./stubFalse":95}],83:[function(require,module,exports){
+},{"./_root":70,"./stubFalse":93}],81:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObject = require('./isObject');
 
@@ -3188,7 +2704,7 @@ function isFunction(value) {
 
 module.exports = isFunction;
 
-},{"./_baseGetTag":30,"./isObject":87}],84:[function(require,module,exports){
+},{"./_baseGetTag":28,"./isObject":85}],82:[function(require,module,exports){
 /** Used as references for various `Number` constants. */
 var MAX_SAFE_INTEGER = 9007199254740991;
 
@@ -3225,7 +2741,7 @@ function isLength(value) {
 
 module.exports = isLength;
 
-},{}],85:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /**
  * Checks if `value` is `null` or `undefined`.
  *
@@ -3252,7 +2768,7 @@ function isNil(value) {
 
 module.exports = isNil;
 
-},{}],86:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObjectLike = require('./isObjectLike');
 
@@ -3292,7 +2808,7 @@ function isNumber(value) {
 
 module.exports = isNumber;
 
-},{"./_baseGetTag":30,"./isObjectLike":88}],87:[function(require,module,exports){
+},{"./_baseGetTag":28,"./isObjectLike":86}],85:[function(require,module,exports){
 /**
  * Checks if `value` is the
  * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
@@ -3325,7 +2841,7 @@ function isObject(value) {
 
 module.exports = isObject;
 
-},{}],88:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 /**
  * Checks if `value` is object-like. A value is object-like if it's not `null`
  * and has a `typeof` result of "object".
@@ -3356,7 +2872,7 @@ function isObjectLike(value) {
 
 module.exports = isObjectLike;
 
-},{}],89:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     getPrototype = require('./_getPrototype'),
     isObjectLike = require('./isObjectLike');
@@ -3420,7 +2936,7 @@ function isPlainObject(value) {
 
 module.exports = isPlainObject;
 
-},{"./_baseGetTag":30,"./_getPrototype":43,"./isObjectLike":88}],90:[function(require,module,exports){
+},{"./_baseGetTag":28,"./_getPrototype":41,"./isObjectLike":86}],88:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isArray = require('./isArray'),
     isObjectLike = require('./isObjectLike');
@@ -3452,7 +2968,7 @@ function isString(value) {
 
 module.exports = isString;
 
-},{"./_baseGetTag":30,"./isArray":79,"./isObjectLike":88}],91:[function(require,module,exports){
+},{"./_baseGetTag":28,"./isArray":77,"./isObjectLike":86}],89:[function(require,module,exports){
 var baseGetTag = require('./_baseGetTag'),
     isObjectLike = require('./isObjectLike');
 
@@ -3483,7 +2999,7 @@ function isSymbol(value) {
 
 module.exports = isSymbol;
 
-},{"./_baseGetTag":30,"./isObjectLike":88}],92:[function(require,module,exports){
+},{"./_baseGetTag":28,"./isObjectLike":86}],90:[function(require,module,exports){
 var baseIsTypedArray = require('./_baseIsTypedArray'),
     baseUnary = require('./_baseUnary'),
     nodeUtil = require('./_nodeUtil');
@@ -3512,7 +3028,7 @@ var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedA
 
 module.exports = isTypedArray;
 
-},{"./_baseIsTypedArray":33,"./_baseUnary":37,"./_nodeUtil":69}],93:[function(require,module,exports){
+},{"./_baseIsTypedArray":31,"./_baseUnary":35,"./_nodeUtil":67}],91:[function(require,module,exports){
 var arrayLikeKeys = require('./_arrayLikeKeys'),
     baseKeys = require('./_baseKeys'),
     isArrayLike = require('./isArrayLike');
@@ -3551,7 +3067,7 @@ function keys(object) {
 
 module.exports = keys;
 
-},{"./_arrayLikeKeys":26,"./_baseKeys":34,"./isArrayLike":80}],94:[function(require,module,exports){
+},{"./_arrayLikeKeys":24,"./_baseKeys":32,"./isArrayLike":78}],92:[function(require,module,exports){
 var MapCache = require('./_MapCache');
 
 /** Error message constants. */
@@ -3626,7 +3142,7 @@ memoize.Cache = MapCache;
 
 module.exports = memoize;
 
-},{"./_MapCache":24}],95:[function(require,module,exports){
+},{"./_MapCache":22}],93:[function(require,module,exports){
 /**
  * This method returns `false`.
  *
@@ -3646,7 +3162,7 @@ function stubFalse() {
 
 module.exports = stubFalse;
 
-},{}],96:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 var baseToString = require('./_baseToString');
 
 /**
@@ -3676,7 +3192,7 @@ function toString(value) {
 
 module.exports = toString;
 
-},{"./_baseToString":36}],"airtable":[function(require,module,exports){
+},{"./_baseToString":34}],"airtable":[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -3750,4 +3266,4 @@ var Airtable = /** @class */ (function () {
 }());
 module.exports = Airtable;
 
-},{"./airtable_error":2,"./base":3,"./record":15,"./table":17}]},{},["airtable"]);
+},{"./airtable_error":1,"./base":2,"./record":14,"./table":16}]},{},["airtable"]);

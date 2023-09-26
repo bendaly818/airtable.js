@@ -2,7 +2,6 @@ import get from 'lodash/get';
 import isPlainObject from 'lodash/isPlainObject';
 import keys from 'lodash/keys';
 import fetch from './fetch';
-import AbortController from './abort-controller';
 import objectToQueryParamString from './object_to_query_param_string';
 import AirtableError from './airtable_error';
 import Table from './table';
@@ -55,7 +54,6 @@ class Base {
             this._id
         }${get(options, 'path', '/')}?${objectToQueryParamString(get(options, 'qs', {}))}`;
 
-        const controller = new AbortController();
         const headers = this._getRequestHeaders(
             Object.assign({}, this._airtable._customHeaders, options.headers ?? {})
         );
@@ -63,21 +61,15 @@ class Base {
         const requestOptions: RequestInit = {
             method,
             headers,
-            signal: controller.signal,
         };
 
         if ('body' in options && _canRequestMethodIncludeBody(method)) {
             requestOptions.body = JSON.stringify(options.body);
         }
 
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, this._airtable._requestTimeout);
-
         return new Promise((resolve, reject) => {
             fetch(url, requestOptions)
                 .then((resp: Response) => {
-                    clearTimeout(timeout);
                     if (resp.status === 429 && !this._airtable._noRetryIfRateLimited) {
                         const numAttempts = get(options, '_numAttempts', 0);
                         const backoffDelayMs = exponentialBackoffWithJitter(numAttempts);
@@ -114,7 +106,6 @@ class Base {
                     }
                 })
                 .catch(err => {
-                    clearTimeout(timeout);
                     err = new AirtableError('CONNECTION_ERROR', err.message, null);
                     reject(err);
                 });
